@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>PK Kumanda</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;800&display=swap">
+<style>
+  :root{
+    --bg:#0e0c09; --panel:#171410; --line:#2b251c; --text:#f3ead6; --muted:#9a8f7a;
+    --gold:#f5c842; --gold-deep:#c9901a; --neon:#c56bff; --ice:#8fd8ff; --ok:#5fd37a; --bad:#e2574a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Barlow Condensed","Arial Narrow",sans-serif;height:100%}
+  body{padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  header h1{font-family:Anton,Impact,sans-serif;font-size:34px;letter-spacing:.02em;margin:0;color:var(--gold)}
+  header h1 small{font-family:"Barlow Condensed";font-weight:500;font-size:16px;color:var(--muted);margin-left:8px;letter-spacing:.06em}
+  .status{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--muted)}
+  .status i{width:10px;height:10px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 4px rgba(226,87,74,.15)}
+  .status.on i{background:var(--ok);box-shadow:0 0 0 4px rgba(95,211,122,.15)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+  label{display:block;font-size:14px;color:var(--muted);letter-spacing:.08em;margin-bottom:6px}
+  input[type=text]{width:100%;font:800 26px "Barlow Condensed";letter-spacing:.08em;color:var(--text);background:#0b0906;border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-transform:uppercase}
+  input:focus{outline:2px solid var(--gold);outline-offset:1px}
+
+  .themes{display:flex;gap:8px}
+  .themes button{flex:1;font:600 18px "Barlow Condensed";letter-spacing:.06em;padding:12px 0;border-radius:12px;border:1px solid var(--line);background:#0b0906;color:var(--text)}
+  .themes button.on{outline:2px solid var(--gold);outline-offset:-2px}
+  .themes .sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .big{position:relative;aspect-ratio:1.15;border-radius:22px;border:1px solid var(--line);
+       background:linear-gradient(180deg,#201b13,#13100b);color:var(--gold);
+       font-family:Anton,Impact,sans-serif;font-size:72px;line-height:1;display:flex;align-items:center;justify-content:center;
+       box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 30px rgba(0,0,0,.45);transition:transform .08s}
+  .big small{position:absolute;left:14px;top:12px;font-family:"Barlow Condensed";font-weight:600;font-size:14px;letter-spacing:.1em;color:var(--muted)}
+  .big:active{transform:scale(.96)}
+  .big.alt{font-size:40px;color:var(--text)}
+  .big.sent{animation:flash .5s}
+  @keyframes flash{0%{outline:3px solid var(--gold);outline-offset:-3px}100%{outline:3px solid transparent}}
+
+  .log{font-size:15px;color:var(--muted);text-align:center;margin-top:10px;min-height:20px}
+  .help{font-size:14px;color:var(--muted);line-height:1.5;margin-top:4px}
+  code{color:var(--text);background:#0b0906;padding:2px 6px;border-radius:6px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>PK Kumanda <small id="roomTag"></small></h1>
+  <div class="status" id="status"><i></i><span>Bağlanıyor</span></div>
+</header>
+
+<div class="card">
+  <label for="name">Ekranda yazılacak isim</label>
+  <input type="text" id="name" maxlength="16" placeholder="YAYINCI">
+</div>
+
+<div class="card">
+  <label>Tema</label>
+  <div class="themes">
+    <button data-theme="gold" class="on"><span class="sw" style="background:var(--gold)"></span>Altın</button>
+    <button data-theme="neon"><span class="sw" style="background:var(--neon)"></span>Neon</button>
+    <button data-theme="ice"><span class="sw" style="background:var(--ice)"></span>Buz</button>
+  </div>
+</div>
+
+<div class="grid">
+  <button class="big" data-mult="2"><small>ÇARPAN</small>X2</button>
+  <button class="big" data-mult="3"><small>ÇARPAN</small>X3</button>
+  <button class="big" data-mult="5"><small>ÇARPAN</small>X5</button>
+  <button class="big" data-mult="10"><small>ÇARPAN</small>X10</button>
+</div>
+<div class="log" id="log"></div>
+
+<div class="card" style="margin-top:14px">
+  <div class="help" id="help">Bu kumanda, aynı anahtarla açılmış overlay'i tetikler. Studio'daki bağlantı: <code id="ovUrl"></code></div>
+</div>
+
+<script>
+(function(){
+  var q = new URLSearchParams(location.search);
+  var key = (q.get("key") || "").toLowerCase();
+  var status = document.getElementById("status"), log = document.getElementById("log");
+  var nameEl = document.getElementById("name");
+  document.getElementById("roomTag").textContent = key ? "#" + key : "";
+  document.getElementById("ovUrl").textContent = location.origin + "/overlay?key=" + key;
+  nameEl.value = localStorage.getItem("pk_name") || "";
+  nameEl.addEventListener("input", function(){ localStorage.setItem("pk_name", nameEl.value); });
+
+  var theme = localStorage.getItem("pk_theme") || "gold";
+  var tbs = document.querySelectorAll(".themes button");
+  tbs.forEach(function(b){
+    b.classList.toggle("on", b.dataset.theme === theme);
+    b.addEventListener("click", function(){
+      theme = b.dataset.theme; localStorage.setItem("pk_theme", theme);
+      tbs.forEach(function(x){ x.classList.toggle("on", x === b); });
+    });
+  });
+
+  var ws, ready = false;
+  function connect(){
+    if (!key){ status.querySelector("span").textContent = "Anahtar yok: ?key=isim ekle"; return; }
+    var proto = location.protocol === "https:" ? "wss://" : "ws://";
+    ws = new WebSocket(proto + location.host + "/ws?key=" + encodeURIComponent(key) + "&role=panel");
+    ws.onopen = function(){ ready = true; status.className = "status on"; status.querySelector("span").textContent = "Bağlı"; };
+    ws.onclose = function(){ ready = false; status.className = "status"; status.querySelector("span").textContent = "Koptu, tekrar deniyor"; setTimeout(connect, 2000); };
+    ws.onerror = function(){ try { ws.close(); } catch(e){} };
+  }
+  connect();
+
+  var last = 0;
+  document.querySelectorAll(".big").forEach(function(b){
+    b.addEventListener("click", function(){
+      if (!ready){ log.textContent = "Bağlantı yok, bekle"; return; }
+      var now = Date.now(); if (now - last < 600) return; last = now;   // çift dokunma koruması
+      var mult = b.dataset.mult;
+      ws.send(JSON.stringify({ type:"play", mult: mult, theme: theme, name: nameEl.value.trim() }));
+      b.classList.remove("sent"); void b.offsetWidth; b.classList.add("sent");
+      log.textContent = "Gönderildi: X" + mult + " · " + theme;
+    });
+  });
+})();
+</script>
+</body>
+</html>
