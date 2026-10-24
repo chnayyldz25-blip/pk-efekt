@@ -6,205 +6,213 @@
 <title>PK Efekt · Overlay</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;800&display=swap">
 <style>
-  :root{
-    --gold-1:#fff3c4; --gold-2:#f5c842; --gold-3:#c9901a; --gold-4:#7a4f06; --ink:#1a1000;
-    --neon-1:#f0e6ff; --neon-2:#c56bff; --neon-3:#7a2cff; --neon-4:#2a0a5e;
-    --ice-1:#f2fbff; --ice-2:#8fd8ff; --ice-3:#2a9be0; --ice-4:#0a3a66;
-    --c1:var(--gold-1); --c2:var(--gold-2); --c3:var(--gold-3); --c4:var(--gold-4); --glow:rgba(255,220,120,.55);
-    --dur:3500ms;
-  }
+  :root{ --dur:4200ms; }
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   body{font-family:"Anton",Impact,"Arial Black",sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
 
-  /* 1080x1920 stage; PK-safe column in the middle */
-  #stage{position:fixed;inset:0;width:1080px;height:1920px;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
-  #fx{position:absolute;inset:0;width:100%;height:100%}
+  #stage{position:fixed;left:50%;top:50%;width:1080px;height:1920px;transform:translate(-50%,-50%);pointer-events:none;will-change:transform}
+  #shake{position:absolute;inset:0;will-change:transform}
+  #fx{position:absolute;left:0;top:0;width:1080px;height:1920px}
 
-  .theme-neon{--c1:var(--neon-1);--c2:var(--neon-2);--c3:var(--neon-3);--c4:var(--neon-4);--glow:rgba(197,107,255,.6)}
-  .theme-ice{--c1:var(--ice-1);--c2:var(--ice-2);--c3:var(--ice-3);--c4:var(--ice-4);--glow:rgba(143,216,255,.6)}
+  .t-fire {--c1:#fff6d5;--c2:#ffd34d;--c3:#ff7a1a;--c4:#5a1500;--glow:rgba(255,120,30,.75);--rule:#ffb347}
+  .t-gold {--c1:#fff3c4;--c2:#f5c842;--c3:#c9901a;--c4:#7a4f06;--glow:rgba(255,220,120,.55);--rule:#f5c842}
+  .t-neon {--c1:#f0e6ff;--c2:#c56bff;--c3:#7a2cff;--c4:#2a0a5e;--glow:rgba(197,107,255,.6);--rule:#c56bff}
+  .t-ice  {--c1:#f2fbff;--c2:#8fd8ff;--c3:#2a9be0;--c4:#0a3a66;--glow:rgba(143,216,255,.6);--rule:#8fd8ff}
 
-  /* ---- text block (sits in PK-safe middle column, below the face) ---- */
-  .wrap{
-    position:absolute;left:50%;top:60%;transform:translate(-50%,-50%);
-    display:flex;flex-direction:column;align-items:center;opacity:0;
-    width:560px;
-  }
-  .mult{
-    font-size:420px;line-height:.9;letter-spacing:-.02em;
-    background:linear-gradient(180deg,var(--c1) 0%,var(--c2) 38%,var(--c3) 62%,var(--c1) 100%);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 6px 0 var(--c4)) drop-shadow(0 14px 0 var(--ink)) drop-shadow(0 0 40px var(--glow));
-    position:relative;
-  }
+  .wrap{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%) scale(3);opacity:0;
+        display:flex;flex-direction:column;align-items:center;width:640px;will-change:transform,opacity}
+  .m3d{position:relative;perspective:1400px;transform-style:preserve-3d;will-change:transform}
+  .m3d .inner{transform-style:preserve-3d}
+  .mult{position:relative;font-size:440px;line-height:.9;letter-spacing:-.02em;white-space:nowrap}
+  .mult.depth{position:absolute;inset:0;color:var(--c4)}           /* extrusion: text-shadow stack set by JS */
+  .mult.face{background:linear-gradient(180deg,var(--c1) 0%,var(--c2) 36%,var(--c3) 64%,var(--c1) 100%);
+        -webkit-background-clip:text;background-clip:text;color:transparent;
+        filter:drop-shadow(0 0 42px var(--glow))}
+  /* float: slow 3D sway during the hold */
+  .play .m3d{animation:sway 3.2s 900ms ease-in-out infinite}
+  @keyframes sway{
+    0%{transform:rotateY(-16deg) rotateX(7deg) translateY(0)}
+    50%{transform:rotateY(16deg) rotateX(-5deg) translateY(-10px)}
+    100%{transform:rotateY(-16deg) rotateX(7deg) translateY(0)}}
   .mult .x{font-size:.55em;vertical-align:.32em;margin-right:.04em}
-  .name{
-    margin-top:18px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:800;
-    font-size:80px;letter-spacing:.14em;color:var(--c1);
-    text-shadow:0 3px 0 var(--c4),0 8px 0 var(--ink),0 0 24px var(--glow);
-    padding:6px 30px;border-top:4px solid var(--c2);border-bottom:4px solid var(--c2);
-  }
+  .mult .shine{position:absolute;inset:0;color:transparent;filter:none;
+        background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%);
+        background-size:300% 100%;background-position:120% 0;-webkit-background-clip:text;background-clip:text;opacity:0}
+  .name{margin-top:14px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:800;font-size:84px;letter-spacing:.14em;
+        color:var(--c1);text-shadow:0 3px 0 var(--c4),0 9px 0 #1a0800,0 0 26px var(--glow);
+        padding:4px 34px;border-top:4px solid var(--rule);border-bottom:4px solid var(--rule)}
 
-  /* ---- choreography ---- */
   .play .wrap{animation:slam var(--dur) cubic-bezier(.2,.9,.2,1) forwards}
   @keyframes slam{
-    0%{opacity:0;transform:translate(-50%,-50%) scale(3.2) rotate(-6deg)}
-    9%{opacity:1;transform:translate(-50%,-50%) scale(.92) rotate(1deg)}
-    12%{transform:translate(-50%,-50%) scale(1.06) rotate(-.5deg)}
-    15%{transform:translate(-50%,-50%) scale(1)}
-    78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
-    100%{opacity:0;transform:translate(-50%,-54%) scale(1.08)}
-  }
-  /* metallic shine sweep, clipped to the glyphs */
-  .mult .shine{
-    position:absolute;inset:0;color:transparent;filter:none;
-    background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%);
-    background-size:300% 100%;background-position:120% 0;
-    -webkit-background-clip:text;background-clip:text;opacity:0;
+    0%,6%{opacity:0;transform:translate(-50%,-50%) scale(3.2) rotate(-5deg)}
+    12%{opacity:1;transform:translate(-50%,-50%) scale(.9) rotate(1deg)}
+    15%{transform:translate(-50%,-50%) scale(1.07) rotate(-.4deg)}
+    18%{transform:translate(-50%,-50%) scale(1)}
+    82%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-56%) scale(1.1)}
   }
   .play .mult .shine{animation:shine var(--dur) ease-out forwards}
-  @keyframes shine{0%,16%{opacity:0;background-position:120% 0}20%{opacity:1}48%{opacity:1;background-position:-120% 0}52%,100%{opacity:0}}
+  @keyframes shine{0%,22%{opacity:0;background-position:120% 0}26%{opacity:1}52%{opacity:1;background-position:-120% 0}56%,100%{opacity:0}}
+  .play #shake{animation:shake 700ms 330ms linear}
+  @keyframes shake{
+    0%{transform:translate(0,0)}10%{transform:translate(-14px,9px)}20%{transform:translate(12px,-7px)}30%{transform:translate(-9px,6px)}
+    40%{transform:translate(7px,-5px)}55%{transform:translate(-4px,3px)}70%{transform:translate(2px,-2px)}100%{transform:translate(0,0)}}
 
-  /* ---- test control: only when ?test=1 ---- */
-  #panel{position:fixed;left:16px;bottom:16px;display:none;gap:10px;pointer-events:auto;font-family:system-ui,sans-serif}
-  #panel button{font:600 15px system-ui;padding:12px 18px;border:0;border-radius:10px;background:#fff;color:#111;cursor:pointer}
-  #panel span{color:#fff;font-size:13px;opacity:.7;align-self:center;text-shadow:0 1px 2px #000}
-  body.test #panel{display:flex}
   #dot{position:fixed;right:10px;bottom:10px;width:10px;height:10px;border-radius:50%;display:none;background:#e33}
   #dot.on{background:#3c3}
-  body.test #dot{display:block}
+  #panel{position:fixed;left:16px;bottom:16px;display:none;gap:10px;pointer-events:auto;font-family:system-ui,sans-serif}
+  #panel button{font:600 15px system-ui;padding:12px 18px;border:0;border-radius:10px;background:#fff;color:#111;cursor:pointer}
+  #panel span{color:#fff;font-size:13px;opacity:.75;align-self:center;text-shadow:0 1px 2px #000}
+  body.test #panel{display:flex} body.test #dot{display:block}
 </style>
 </head>
-<body>
-<div id="stage">
-  <canvas id="fx" width="1080" height="1920"></canvas>
+<body class="t-fire">
+<div id="stage"><div id="shake">
+  <canvas id="fx" width="540" height="960"></canvas>
   <div class="wrap">
-    <div class="mult"><span class="x">X</span><span id="num">3</span><span class="shine" aria-hidden="true"><span class="x">X</span><span id="num2">3</span></span></div>
+    <div class="m3d" id="m3d">
+      <div class="mult depth" id="depth" aria-hidden="true"><span class="x">X</span><span id="num3">3</span></div>
+      <div class="mult face"><span class="x">X</span><span id="num">3</span><span class="shine" aria-hidden="true"><span class="x">X</span><span id="num2">3</span></span></div>
+    </div>
     <div class="name" id="name">YAYINCI</div>
   </div>
-</div>
+</div></div>
 <div id="dot" class="off"></div>
-<div id="panel">
-  <button id="btn">Efekti oynat</button>
-  <span>T tuşu da çalışır</span>
-</div>
+<div id="panel"><button id="btn">Efekti oynat</button><span>T tuşu da çalışır · <b id="fps"></b></span></div>
 
 <script>
 (function(){
   var q = new URLSearchParams(location.search);
   var name = (q.get("name") || "YAYINCI").toUpperCase().slice(0,16);
   var mult = (q.get("mult") || "3").replace(/[^0-9]/g,"") || "3";
-  var theme = q.get("theme") || "gold";
-  var dur = 3500;
-
-  document.getElementById("name").textContent = name;
-  document.getElementById("num").textContent = mult;
-  document.getElementById("num2").textContent = mult;
-  if (theme === "neon" || theme === "ice") document.body.classList.add("theme-" + theme);
+  var theme = q.get("theme") || "fire";
+  var DUR = 4200;
   var hashTest = /test/.test(location.hash);
-  if (q.get("test") === "1" || hashTest) document.body.classList.add("test");
+  var testMode = q.get("test") === "1" || hashTest;
 
-  // ---- scale stage to viewport (Studio can hand us any size) ----
-  var stage = document.getElementById("stage");
-  function fit(){
-    var s = Math.min(innerWidth/1080, innerHeight/1920);
-    stage.style.transform = "translate(-50%,-50%) scale(" + s + ")";
-  }
+  var $ = function(id){ return document.getElementById(id); };
+  var stage = $("stage"), cv = $("fx"), ctx = cv.getContext("2d", { alpha:true });
+  var W = 540, H = 960, CX = 270, CY = 576;
+
+  function setText(n, m){ $("name").textContent = n; $("num").textContent = m; $("num2").textContent = m; $("num3").textContent = m; }
+  var DEPTH = { fire:["#7a2a00","#2a0a00"], gold:["#8a5a08","#2a1a02"], neon:["#3a1270","#120530"], ice:["#0e4a80","#041a30"] };
+  function mix(a,b,t){ var pa=parseInt(a.slice(1),16), pb=parseInt(b.slice(1),16), r=[16,8,0].map(function(sh){ var x=(pa>>sh)&255, y=(pb>>sh)&255; return Math.round(x+(y-x)*t); }); return "rgb("+r.join(",")+")"; }
+  function buildDepth(t){ var d = DEPTH[t] || DEPTH.fire, out = []; for (var i=1;i<=18;i++) out.push((i*1.6)+"px "+(i*2.7)+"px 0 "+mix(d[0],d[1],i/18)); $("depth").style.textShadow = out.join(","); }
+  function setTheme(t){ document.body.className = (testMode ? "test " : "") + "t-" + (t||"fire"); }
+  setText(name, mult); setTheme(theme); buildDepth(theme);
+
+  function fit(){ var s = Math.min(innerWidth/1080, innerHeight/1920); stage.style.transform = "translate(-50%,-50%) scale(" + s + ")"; }
   addEventListener("resize", fit); fit();
 
-  // ---- particles: 2D canvas, no WebGL ----
-  var cv = document.getElementById("fx"), ctx = cv.getContext("2d");
-  var cs = getComputedStyle(document.body);
-  function col(v){ return cs.getPropertyValue(v).trim(); }
-  var parts = [], ring = null, t0 = 0, raf = 0;
-  var W = 1080, H = 1920, CX = 540, CY = 1150; // CY ≈ 60% (PK-safe, below the face)
+  // ---------- sprites (pre-rendered once) ----------
+  function blob(size, stops){
+    var c = document.createElement("canvas"); c.width = c.height = size;
+    var g = c.getContext("2d"), r = size/2, gr = g.createRadialGradient(r,r,0,r,r,r);
+    for (var i=0;i<stops.length;i++) gr.addColorStop(stops[i][0], stops[i][1]);
+    g.fillStyle = gr; g.fillRect(0,0,size,size); return c;
+  }
+  var PAL = {
+    fire:{ flame:[["0","rgba(255,250,210,1)"],[".25","rgba(255,200,70,.95)"],[".55","rgba(255,100,20,.55)"],["1","rgba(120,20,0,0)"]],
+           ember:[["0","rgba(255,240,180,1)"],[".4","rgba(255,160,40,.9)"],["1","rgba(255,80,0,0)"]],
+           smoke:[["0","rgba(40,12,4,.35)"],["1","rgba(20,6,2,0)"]], ring:"rgba(255,170,60,", wash:"rgba(255,90,20," },
+    gold:{ flame:[["0","rgba(255,250,220,1)"],[".3","rgba(255,215,90,.9)"],[".6","rgba(220,150,30,.45)"],["1","rgba(120,80,0,0)"]],
+           ember:[["0","rgba(255,245,200,1)"],[".4","rgba(245,200,66,.9)"],["1","rgba(200,140,20,0)"]],
+           smoke:[["0","rgba(30,20,5,.25)"],["1","rgba(20,12,2,0)"]], ring:"rgba(245,200,66,", wash:"rgba(255,200,80," },
+    neon:{ flame:[["0","rgba(245,230,255,1)"],[".3","rgba(197,107,255,.9)"],[".6","rgba(122,44,255,.5)"],["1","rgba(40,10,90,0)"]],
+           ember:[["0","rgba(255,240,255,1)"],[".4","rgba(197,107,255,.9)"],["1","rgba(122,44,255,0)"]],
+           smoke:[["0","rgba(20,5,40,.35)"],["1","rgba(10,2,20,0)"]], ring:"rgba(197,107,255,", wash:"rgba(150,60,255," },
+    ice: { flame:[["0","rgba(240,252,255,1)"],[".3","rgba(143,216,255,.9)"],[".6","rgba(42,155,224,.5)"],["1","rgba(10,58,102,0)"]],
+           ember:[["0","rgba(255,255,255,1)"],[".4","rgba(143,216,255,.9)"],["1","rgba(42,155,224,0)"]],
+           smoke:[["0","rgba(10,30,50,.3)"],["1","rgba(5,15,30,0)"]], ring:"rgba(143,216,255,", wash:"rgba(100,190,255," }
+  };
+  var SPR = {};
+  function buildSprites(t){ var p = PAL[t] || PAL.fire;
+    var g = ctx.createLinearGradient(0,H,0,H*.62); g.addColorStop(0, p.wash + ".34)"); g.addColorStop(1, p.wash + "0)");
+    var gl = ctx.createLinearGradient(0,0,90,0); gl.addColorStop(0, p.wash + ".18)"); gl.addColorStop(1, p.wash + "0)");
+    var gr = ctx.createLinearGradient(W,0,W-90,0); gr.addColorStop(0, p.wash + ".18)"); gr.addColorStop(1, p.wash + "0)");
+    SPR = { flame:blob(96,p.flame), ember:blob(24,p.ember), smoke:blob(140,p.smoke), ring:p.ring, wash:p.wash, g:g, gl:gl, gr:gr }; }
+  buildSprites(theme);
 
+  // ---------- particles ----------
+  var flames = [], embers = [], sparks = [], smokes = [], ring = null;
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function spawnFlame(){
+    // bottom band: strong but short-lived; sides: thin licks that stay below the face line
+    var side = Math.random(), x, y, vx = 0, vy, s, decay;
+    if (side < .62){ x = rnd(-10,W+10); y = rnd(H-30, H+30); vy = -rnd(3,6.5); vx = rnd(-.5,.5); s = rnd(.7,1.6); decay = rnd(.02,.034); }
+    else if (side < .81){ x = rnd(-24, 30); y = rnd(H*.42, H); vy = -rnd(2,4); vx = rnd(.1,.8); s = rnd(.5,1.1); decay = rnd(.024,.04); }
+    else { x = rnd(W-30, W+24); y = rnd(H*.42, H); vy = -rnd(2,4); vx = -rnd(.1,.8); s = rnd(.5,1.1); decay = rnd(.024,.04); }
+    flames.push({x:x,y:y,vx:vx,vy:vy,s:s,life:1,decay:decay,w:rnd(0,6.28)});
+  }
+  function spawnEmber(){ embers.push({x:rnd(0,W),y:rnd(H*.5,H+20),vx:rnd(-.5,.5),vy:-rnd(1.2,3.2),s:rnd(.35,1),life:1,decay:rnd(.004,.009),w:rnd(0,6.28)}); }
   function burst(){
-    var c1 = col("--c1"), c2 = col("--c2"), c3 = col("--c3");
-    parts = [];
-    for (var i = 0; i < 160; i++){
-      var a = Math.random()*Math.PI*2, sp = 6 + Math.random()*16;
-      parts.push({x:CX, y:CY, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 6,
-        r: 3 + Math.random()*7, life: 1, decay: .006 + Math.random()*.012,
-        c: [c1,c2,c3][i%3], spin: Math.random()*6, spark: i%4===0});
-    }
-    // slow rising embers for the hold phase
-    for (var j = 0; j < 90; j++){
-      parts.push({x:CX + (Math.random()-.5)*620, y:CY + 200 + Math.random()*260,
-        vx:(Math.random()-.5)*.8, vy:-(1.2+Math.random()*2.2), r:2+Math.random()*4,
-        life:1, decay:.004+Math.random()*.006, c:[c1,c2][j%2], ember:true, delay: 300+Math.random()*1400});
-    }
-    ring = {r:40, a:1};
+    for (var i=0;i<140;i++){ var a = Math.random()*6.283, sp = rnd(4,13);
+      sparks.push({x:CX,y:CY,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,s:rnd(.3,.9),life:1,decay:rnd(.012,.026),spark:i%3===0,rot:rnd(0,6.28)}); }
+    for (var j=0;j<10;j++) smokes.push({x:CX+rnd(-120,120),y:CY+rnd(-40,80),vx:rnd(-.5,.5),vy:-rnd(.4,1.1),s:rnd(1,2.2),life:1,decay:rnd(.006,.01)});
+    ring = {r:30,a:1};
   }
 
-  function draw(now){
-    var el = now - t0;
+  // ---------- frame loop (runs only while playing) ----------
+  var t0 = 0, raf = 0, playing = false, frames = 0, fpsT = 0, burstDone = false;
+  function frame(now){
+    var el = now - t0, k = el/DUR;
+    var intensity = k < .08 ? k/.08 : k < .78 ? 1 : Math.max(0, 1-(k-.78)/.22);
+    frames++; if (now - fpsT > 1000){ $("fps").textContent = frames + " fps"; frames = 0; fpsT = now; }
+
     ctx.clearRect(0,0,W,H);
-    // shock ring
-    if (ring && ring.a > 0){
-      ctx.beginPath(); ctx.arc(CX, CY, ring.r, 0, Math.PI*2);
-      ctx.strokeStyle = col("--c2"); ctx.globalAlpha = ring.a*.8; ctx.lineWidth = 14*ring.a; ctx.stroke();
-      ring.r += 26; ring.a -= .035; ctx.globalAlpha = 1;
-    }
-    for (var i = 0; i < parts.length; i++){
-      var p = parts[i];
-      if (p.ember && el < p.delay) continue;
-      p.x += p.vx; p.y += p.vy;
-      if (!p.ember){ p.vy += .32; p.vx *= .985; }
-      p.life -= p.decay; if (p.life <= 0) continue;
-      ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
-      ctx.fillStyle = p.c;
-      if (p.spark){
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.spin + el*.01);
-        ctx.fillRect(-p.r*1.6, -p.r*.25, p.r*3.2, p.r*.5);
-        ctx.fillRect(-p.r*.25, -p.r*1.6, p.r*.5, p.r*3.2);
-        ctx.restore();
-      } else {
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r*p.life, 0, Math.PI*2); ctx.fill();
-      }
-    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = intensity;
+    ctx.fillStyle = SPR.g; ctx.fillRect(0,H*.62,W,H*.38);
+    ctx.fillStyle = SPR.gl; ctx.fillRect(0,0,90,H);
+    ctx.fillStyle = SPR.gr; ctx.fillRect(W-90,0,90,H);
     ctx.globalAlpha = 1;
-    if (el < dur) raf = requestAnimationFrame(draw); else { ctx.clearRect(0,0,W,H); parts = []; ring = null; }
+
+    if (intensity > 0){ for (var s=0; s<Math.round(4.5*intensity); s++) spawnFlame(); if (Math.random() < .5*intensity) spawnEmber(); }
+    if (k > .07 && !burstDone){ burst(); burstDone = true; }
+
+    for (var i=smokes.length-1;i>=0;i--){ var m = smokes[i]; m.x+=m.vx; m.y+=m.vy; m.s+=.012; m.life-=m.decay;
+      if (m.life<=0){ smokes.splice(i,1); continue; } ctx.globalAlpha = m.life*.8; var ms = 140*m.s; ctx.drawImage(SPR.smoke, m.x-ms/2, m.y-ms/2, ms, ms); }
+
+    ctx.globalCompositeOperation = "lighter";
+    for (i=flames.length-1;i>=0;i--){ var f = flames[i]; f.w+=.15; f.x+=f.vx+Math.sin(f.w)*.9; f.y+=f.vy; f.life-=f.decay; f.s*=.985;
+      if (f.life<=0){ flames.splice(i,1); continue; } ctx.globalAlpha = Math.min(.85,f.life); var fs = 96*f.s; ctx.drawImage(SPR.flame, f.x-fs/2, f.y-fs/2, fs, fs); }
+    for (i=embers.length-1;i>=0;i--){ var e = embers[i]; e.w+=.08; e.x+=e.vx+Math.sin(e.w)*.6; e.y+=e.vy; e.life-=e.decay;
+      if (e.life<=0){ embers.splice(i,1); continue; } ctx.globalAlpha = e.life*(.6+.4*Math.sin(e.w*3)); var es = 24*e.s; ctx.drawImage(SPR.ember, e.x-es/2, e.y-es/2, es, es); }
+    for (i=sparks.length-1;i>=0;i--){ var p = sparks[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=.22; p.vx*=.985; p.life-=p.decay;
+      if (p.life<=0){ sparks.splice(i,1); continue; } ctx.globalAlpha = p.life;
+      if (p.spark){ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot+el*.01); ctx.fillStyle="#fff"; ctx.fillRect(-9*p.s,-1.2,18*p.s,2.4); ctx.fillRect(-1.2,-9*p.s,2.4,18*p.s); ctx.restore(); }
+      else { var ps = 24*p.s*p.life; ctx.drawImage(SPR.ember, p.x-ps/2, p.y-ps/2, ps, ps); } }
+    if (ring && ring.a > 0){ ctx.globalAlpha = ring.a*.9; ctx.strokeStyle = SPR.ring + "1)"; ctx.lineWidth = 10*ring.a;
+      ctx.beginPath(); ctx.arc(CX,CY,ring.r,0,6.283); ctx.stroke(); ring.r += 16; ring.a -= .04; }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+
+    if (el < DUR + 400) raf = requestAnimationFrame(frame);
+    else { ctx.clearRect(0,0,W,H); flames=[]; embers=[]; sparks=[]; smokes=[]; ring=null; playing = false; document.body.classList.remove("play"); $("fps").textContent=""; }
   }
 
-  var playing = false;
-  function setTheme(th){
-    document.body.classList.remove("theme-neon","theme-ice");
-    if (th === "neon" || th === "ice") document.body.classList.add("theme-" + th);
+  function play(o){
+    o = o || {};
+    if (o.theme){ setTheme(o.theme); buildSprites(o.theme); buildDepth(o.theme); }
+    if (o.mult || o.name) setText(o.name ? o.name.toUpperCase().slice(0,16) : $("name").textContent, o.mult || $("num").textContent);
+    if (playing) return; playing = true; ring = null; burstDone = false;
+    document.body.classList.remove("play"); void document.body.offsetWidth; document.body.classList.add("play");
+    t0 = performance.now(); fpsT = t0; frames = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   }
-  function play(opts){
-    opts = opts || {};
-    if (opts.mult){ document.getElementById("num").textContent = opts.mult; document.getElementById("num2").textContent = opts.mult; }
-    if (opts.theme) setTheme(opts.theme);
-    if (opts.name) document.getElementById("name").textContent = opts.name.toUpperCase().slice(0,16);
-    if (playing) return; playing = true;
-    cs = getComputedStyle(document.body);
-    document.body.classList.remove("play"); void document.body.offsetWidth;
-    document.body.classList.add("play");
-    t0 = performance.now(); burst(); cancelAnimationFrame(raf); raf = requestAnimationFrame(draw);
-    setTimeout(function(){ document.body.classList.remove("play"); playing = false; }, dur + 50);
-  }
-  document.getElementById("btn").addEventListener("click", function(){ play(); });
-  addEventListener("keydown", function(e){ if ((e.key||"").toLowerCase() === "t") play(); });
+  $("btn").addEventListener("click", function(){ play(); });
+  addEventListener("keydown", function(e){ if ((e.key||"").toLowerCase()==="t") play(); });
   window.playEffect = play;
   if (q.get("auto") === "1" || hashTest) setTimeout(function(){ play(); }, 900);
 
-  // ---- canlı bağlantı: panelden gelen komutları dinle ----
-  var key = (q.get("key") || "").toLowerCase();
-  var dot = document.getElementById("dot");
+  var key = (q.get("key") || "").toLowerCase(), dot = $("dot");
   function connect(){
     if (!key) return;
-    var proto = location.protocol === "https:" ? "wss://" : "ws://";
-    var ws = new WebSocket(proto + location.host + "/ws?key=" + encodeURIComponent(key) + "&role=overlay");
+    var ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://") + location.host + "/ws?key=" + encodeURIComponent(key) + "&role=overlay");
     ws.onopen = function(){ dot.className = "on"; };
-    ws.onmessage = function(ev){
-      var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
-      if (m.type === "play") play({ mult: m.mult, theme: m.theme, name: m.name || name });
-    };
+    ws.onmessage = function(ev){ var m; try{ m = JSON.parse(ev.data); }catch(e){ return; } if (m.type==="play") play({mult:m.mult, theme:m.theme, name:m.name||name}); };
     ws.onclose = function(){ dot.className = "off"; setTimeout(connect, 2000); };
-    ws.onerror = function(){ try { ws.close(); } catch(e){} };
+    ws.onerror = function(){ try{ ws.close(); }catch(e){} };
   }
   connect();
-  // uzun yayında tarayıcı donarsa diye: 3 saatte bir sessiz tazeleme
   setTimeout(function(){ location.reload(); }, 3*60*60*1000);
 })();
 </script>

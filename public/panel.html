@@ -28,7 +28,7 @@
   input:focus{outline:2px solid var(--gold);outline-offset:1px}
 
   .themes{display:flex;gap:8px}
-  .themes button{flex:1;font:600 18px "Barlow Condensed";letter-spacing:.06em;padding:12px 0;border-radius:12px;border:1px solid var(--line);background:#0b0906;color:var(--text)}
+  .themes button{flex:1;font:600 17px "Barlow Condensed";letter-spacing:.06em;padding:12px 0;border-radius:12px;border:1px solid var(--line);background:#0b0906;color:var(--text)}
   .themes button.on{outline:2px solid var(--gold);outline-offset:-2px}
   .themes .sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
 
@@ -62,7 +62,8 @@
 <div class="card">
   <label>Tema</label>
   <div class="themes">
-    <button data-theme="gold" class="on"><span class="sw" style="background:var(--gold)"></span>Altın</button>
+    <button data-theme="fire" class="on"><span class="sw" style="background:#ff7a1a"></span>Ateş</button>
+    <button data-theme="gold"><span class="sw" style="background:var(--gold)"></span>Altın</button>
     <button data-theme="neon"><span class="sw" style="background:var(--neon)"></span>Neon</button>
     <button data-theme="ice"><span class="sw" style="background:var(--ice)"></span>Buz</button>
   </div>
@@ -91,7 +92,7 @@
   nameEl.value = localStorage.getItem("pk_name") || "";
   nameEl.addEventListener("input", function(){ localStorage.setItem("pk_name", nameEl.value); });
 
-  var theme = localStorage.getItem("pk_theme") || "gold";
+  var theme = localStorage.getItem("pk_theme") || "fire";
   var tbs = document.querySelectorAll(".themes button");
   tbs.forEach(function(b){
     b.classList.toggle("on", b.dataset.theme === theme);
