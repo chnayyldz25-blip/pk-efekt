@@ -13,6 +13,8 @@
   #stage{position:fixed;left:50%;top:50%;width:1080px;height:1920px;transform:translate(-50%,-50%);pointer-events:none;will-change:transform}
   #shake{position:absolute;inset:0;will-change:transform}
   #fx{position:absolute;left:0;top:0;width:1080px;height:1920px}
+  #bg{position:absolute;left:0;top:0;width:1080px;height:1920px;object-fit:fill;opacity:0;background:transparent}
+  #bg.on{opacity:1}
 
   .t-fire {--c1:#fff6d5;--c2:#ffd34d;--c3:#ff7a1a;--c4:#5a1500;--glow:rgba(255,120,30,.75);--rule:#ffb347}
   .t-gold {--c1:#fff3c4;--c2:#f5c842;--c3:#c9901a;--c4:#7a4f06;--glow:rgba(255,220,120,.55);--rule:#f5c842}
@@ -22,22 +24,14 @@
   .wrap{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%) scale(3);opacity:0;
         display:flex;flex-direction:column;align-items:center;width:640px;will-change:transform,opacity}
   .m3d{position:relative;perspective:1400px;transform-style:preserve-3d;will-change:transform}
-  .m3d .inner{transform-style:preserve-3d}
-  .mult{position:relative;font-size:440px;line-height:.9;letter-spacing:-.02em;white-space:nowrap}
-  .mult.depth{position:absolute;inset:0;color:var(--c4)}           /* extrusion: text-shadow stack set by JS */
-  .mult.face{background:linear-gradient(180deg,var(--c1) 0%,var(--c2) 36%,var(--c3) 64%,var(--c1) 100%);
-        -webkit-background-clip:text;background-clip:text;color:transparent;
-        filter:drop-shadow(0 0 42px var(--glow))}
+  #txt{display:block;will-change:transform}
+  #shn{position:absolute;left:0;top:0;pointer-events:none}
   /* float: slow 3D sway during the hold */
   .play .m3d{animation:sway 3.2s 900ms ease-in-out infinite}
   @keyframes sway{
     0%{transform:rotateY(-16deg) rotateX(7deg) translateY(0)}
     50%{transform:rotateY(16deg) rotateX(-5deg) translateY(-10px)}
     100%{transform:rotateY(-16deg) rotateX(7deg) translateY(0)}}
-  .mult .x{font-size:.55em;vertical-align:.32em;margin-right:.04em}
-  .mult .shine{position:absolute;inset:0;color:transparent;filter:none;
-        background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%);
-        background-size:300% 100%;background-position:120% 0;-webkit-background-clip:text;background-clip:text;opacity:0}
   .name{margin-top:14px;font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:800;font-size:84px;letter-spacing:.14em;
         color:var(--c1);text-shadow:0 3px 0 var(--c4),0 9px 0 #1a0800,0 0 26px var(--glow);
         padding:4px 34px;border-top:4px solid var(--rule);border-bottom:4px solid var(--rule)}
@@ -51,8 +45,6 @@
     82%{opacity:1;transform:translate(-50%,-50%) scale(1)}
     100%{opacity:0;transform:translate(-50%,-56%) scale(1.1)}
   }
-  .play .mult .shine{animation:shine var(--dur) ease-out forwards}
-  @keyframes shine{0%,22%{opacity:0;background-position:120% 0}26%{opacity:1}52%{opacity:1;background-position:-120% 0}56%,100%{opacity:0}}
   .play #shake{animation:shake 700ms 330ms linear}
   @keyframes shake{
     0%{transform:translate(0,0)}10%{transform:translate(-14px,9px)}20%{transform:translate(12px,-7px)}30%{transform:translate(-9px,6px)}
@@ -68,17 +60,15 @@
 </head>
 <body class="t-fire">
 <div id="stage"><div id="shake">
+  <video id="bg" muted playsinline preload="auto"></video>
   <canvas id="fx" width="540" height="960"></canvas>
   <div class="wrap">
-    <div class="m3d" id="m3d">
-      <div class="mult depth" id="depth" aria-hidden="true"><span class="x">X</span><span id="num3">3</span></div>
-      <div class="mult face"><span class="x">X</span><span id="num">3</span><span class="shine" aria-hidden="true"><span class="x">X</span><span id="num2">3</span></span></div>
-    </div>
+    <div class="m3d" id="m3d"><canvas id="txt"></canvas><canvas id="shn"></canvas></div>
     <div class="name" id="name">YAYINCI</div>
   </div>
 </div></div>
 <div id="dot" class="off"></div>
-<div id="panel"><button id="btn">Efekti oynat</button><span>T tuşu da çalışır · <b id="fps"></b></span></div>
+<div id="panel"><button id="btn">Efekti oynat</button><span>T tuşu da çalışır · <b id="mode"></b> · <b id="fps"></b> <b id="vfps"></b></span></div>
 
 <script>
 (function(){
@@ -94,12 +84,39 @@
   var stage = $("stage"), cv = $("fx"), ctx = cv.getContext("2d", { alpha:true });
   var W = 540, H = 960, CX = 270, CY = 576;
 
-  function setText(n, m){ $("name").textContent = n; $("num").textContent = m; $("num2").textContent = m; $("num3").textContent = m; }
-  var DEPTH = { fire:["#7a2a00","#2a0a00"], gold:["#8a5a08","#2a1a02"], neon:["#3a1270","#120530"], ice:["#0e4a80","#041a30"] };
+  var COL = {
+    fire:{c1:"#fff6d5",c2:"#ffd34d",c3:"#ff7a1a",glow:"rgba(255,120,30,.75)",d:["#7a2a00","#2a0a00"]},
+    gold:{c1:"#fff3c4",c2:"#f5c842",c3:"#c9901a",glow:"rgba(255,220,120,.55)",d:["#8a5a08","#2a1a02"]},
+    neon:{c1:"#f0e6ff",c2:"#c56bff",c3:"#7a2cff",glow:"rgba(197,107,255,.6)",d:["#3a1270","#120530"]},
+    ice: {c1:"#f2fbff",c2:"#8fd8ff",c3:"#2a9be0",glow:"rgba(143,216,255,.6)",d:["#0e4a80","#041a30"]}
+  };
   function mix(a,b,t){ var pa=parseInt(a.slice(1),16), pb=parseInt(b.slice(1),16), r=[16,8,0].map(function(sh){ var x=(pa>>sh)&255, y=(pb>>sh)&255; return Math.round(x+(y-x)*t); }); return "rgb("+r.join(",")+")"; }
-  function buildDepth(t){ var d = DEPTH[t] || DEPTH.fire, out = []; for (var i=1;i<=18;i++) out.push((i*1.6)+"px "+(i*2.7)+"px 0 "+mix(d[0],d[1],i/18)); $("depth").style.textShadow = out.join(","); }
+  var curMult = mult, textTheme = theme, maskC = document.createElement("canvas"), TXT = { w:0, h:0 };
+  var FONT = "Anton, Impact, 'Arial Black', sans-serif";
+  function drawText(){
+    var C = COL[textTheme] || COL.fire, F = 440, FX = 242, pad = 80, gap = 10, lift = 77;
+    var tc = $("txt"), t = tc.getContext("2d");
+    t.font = F + "px " + FONT; var mN = t.measureText(curMult), wN = mN.width, asc = mN.actualBoundingBoxAscent || F*.75;
+    t.font = FX + "px " + FONT; var wX = t.measureText("X").width;
+    var cw = Math.ceil(wX + gap + wN + pad*2 + 30), ch = Math.ceil(asc + pad*2 + 50), y = pad + asc;
+    tc.width = cw; tc.height = ch; $("shn").width = cw; $("shn").height = ch; maskC.width = cw; maskC.height = ch;
+    function glyphs(c, dx, dy){ c.font = FX + "px " + FONT; c.fillText("X", pad + dx, y - lift + dy); c.font = F + "px " + FONT; c.fillText(curMult, pad + wX + gap + dx, y + dy); }
+    t = tc.getContext("2d"); t.clearRect(0,0,cw,ch); t.textBaseline = "alphabetic";
+    for (var i=18;i>=1;i--){ t.fillStyle = mix(C.d[0], C.d[1], i/18); glyphs(t, i*1.6, i*2.7); }      // extrusion
+    var g = t.createLinearGradient(0, y-asc, 0, y); g.addColorStop(0,C.c1); g.addColorStop(.36,C.c2); g.addColorStop(.64,C.c3); g.addColorStop(1,C.c1);
+    t.save(); t.shadowColor = C.glow; t.shadowBlur = 42; t.fillStyle = g; glyphs(t,0,0); t.restore();        // glow
+    t.fillStyle = g; glyphs(t,0,0);                                                                       // face
+    var m = maskC.getContext("2d"); m.clearRect(0,0,cw,ch); m.fillStyle = "#fff"; glyphs(m,0,0);          // shine mask
+    // keep the old layout: visible glyph box sits where the HTML text used to be
+    tc.style.margin = (-pad) + "px " + (-pad) + "px " + (-(ch - y - 44)) + "px";
+    $("shn").style.left = "0px"; $("shn").style.top = (-pad) + "px"; $("shn").style.marginLeft = (-pad) + "px";
+    TXT.w = cw; TXT.h = ch;
+  }
+  function setText(n, m){ $("name").textContent = n; curMult = String(m); drawText(); }
+  function buildDepth(t){ textTheme = t; drawText(); }
   function setTheme(t){ document.body.className = (testMode ? "test " : "") + "t-" + (t||"fire"); }
-  setText(name, mult); setTheme(theme); buildDepth(theme);
+  setTheme(theme); setText(name, mult);
+  if (document.fonts && document.fonts.load) document.fonts.load("440px Anton").then(drawText).catch(function(){});
 
   function fit(){ var s = Math.min(innerWidth/1080, innerHeight/1920); stage.style.transform = "translate(-50%,-50%) scale(" + s + ")"; }
   addEventListener("resize", fit); fit();
@@ -157,7 +174,7 @@
   function frame(now){
     var el = now - t0, k = el/DUR;
     var intensity = k < .08 ? k/.08 : k < .78 ? 1 : Math.max(0, 1-(k-.78)/.22);
-    frames++; if (now - fpsT > 1000){ $("fps").textContent = frames + " fps"; frames = 0; fpsT = now; }
+    frames++; if (now - fpsT > 1000){ $("fps").textContent = "ekran " + frames + " fps"; frames = 0; fpsT = now; }
 
     ctx.clearRect(0,0,W,H);
     ctx.globalCompositeOperation = "source-over";
@@ -187,16 +204,89 @@
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
 
     if (el < DUR + 400) raf = requestAnimationFrame(frame);
-    else { ctx.clearRect(0,0,W,H); flames=[]; embers=[]; sparks=[]; smokes=[]; ring=null; playing = false; document.body.classList.remove("play"); $("fps").textContent=""; }
+    else { ctx.clearRect(0,0,W,H); flames=[]; embers=[]; sparks=[]; smokes=[]; ring=null; finish(); }
+  }
+
+  // ---------- video layer (preloaded into memory, never waits on network mid-stream) ----------
+  var HD = q.get("q") === "hd";
+  var VIDEOS = { fire: HD ? "/assets/fire-bg-hd.webm" : "/assets/fire-bg.webm" };
+  var forceCode = q.get("mode") === "code";
+  var bg = $("bg"), vidReady = {}, vidUrl = {}, curTheme = theme;
+  function preload(t){
+    if (forceCode || !VIDEOS[t] || vidUrl[t]) return;
+    fetch(VIDEOS[t]).then(function(r){ if (!r.ok) throw 0; return r.blob(); })
+      .then(function(b){ vidUrl[t] = URL.createObjectURL(b); if (t === curTheme) loadVid(t); })
+      .catch(function(){ vidReady[t] = false; });
+  }
+  function loadVid(t){
+    if (!vidUrl[t]) return;
+    bg.oncanplaythrough = function(){ vidReady[t] = true; showMode(); };
+    bg.onerror = function(){ vidReady[t] = false; showMode(); };
+    bg.src = vidUrl[t]; bg.load();
+  }
+  function useVideo(){ return !forceCode && vidReady[curTheme] === true; }
+  function showMode(){ $("mode").textContent = useVideo() ? "VİDEO" : "KOD"; }
+  preload(theme); showMode();
+
+  var shRaf = 0;
+  function shine(){
+    var sc = $("shn"), c = sc.getContext("2d"), st = performance.now();
+    cancelAnimationFrame(shRaf);
+    function step(now){
+      var k = (now - st) / DUR;
+      c.clearRect(0,0,TXT.w,TXT.h);
+      if (k > .22 && k < .56){
+        var u = Math.min(1, (k - .24) / .28), e = 1 - Math.pow(1-u, 2), x = -0.35*TXT.w + e*1.7*TXT.w;
+        var a = k < .26 ? (k-.22)/.04 : k > .52 ? (.56-k)/.04 : 1;
+        c.globalCompositeOperation = "source-over"; c.globalAlpha = 1; c.drawImage(maskC, 0, 0);
+        c.globalCompositeOperation = "source-in";
+        var g = c.createLinearGradient(x - 160, 0, x + 160, TXT.h*.4);
+        g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(.5,"rgba(255,255,255,"+(.95*a)+")"); g.addColorStop(1,"rgba(255,255,255,0)");
+        c.fillStyle = g; c.fillRect(0,0,TXT.w,TXT.h); c.globalCompositeOperation = "source-over";
+      }
+      if (k < .58) shRaf = requestAnimationFrame(step); else c.clearRect(0,0,TXT.w,TXT.h);
+    }
+    shRaf = requestAnimationFrame(step);
+  }
+  // test-mode meter: real screen fps + real video frames presented
+  var mRaf = 0;
+  function meter(){
+    if (!testMode) return;
+    var n = 0, vn = 0, last = performance.now();
+    cancelAnimationFrame(mRaf);
+    function tick(now){ n++; if (now - last >= 1000){ $("fps").textContent = "ekran " + n + " fps"; if (vn) $("vfps").textContent = "· video " + vn + " fps"; n = 0; vn = 0; last = now; } if (playing) mRaf = requestAnimationFrame(tick); }
+    if (bg.requestVideoFrameCallback){ var vcb = function(){ vn++; if (playing) bg.requestVideoFrameCallback(vcb); }; bg.requestVideoFrameCallback(vcb); }
+    mRaf = requestAnimationFrame(tick);
+  }
+  function startTextFx(){
+    document.body.classList.remove("play"); void document.body.offsetWidth; document.body.classList.add("play"); shine();
+  }
+  function finish(){
+    playing = false; document.body.classList.remove("play"); bg.classList.remove("on");
+    try { bg.pause(); } catch(e){}
+    $("fps").textContent = ""; $("vfps").textContent = "";
+  }
+  function playCode(){
+    ring = null; burstDone = false; startTextFx();
+    t0 = performance.now(); fpsT = t0; frames = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+  }
+  function playVideo(){
+    var started = false;
+    function go(){ if (started) return; started = true; bg.classList.add("on"); startTextFx(); meter(); setTimeout(finish, DUR + 500); }
+    bg.onplaying = go;
+    try { bg.currentTime = 0; } catch(e){}
+    var pr = bg.play();
+    if (pr && pr.catch) pr.catch(function(){ if (!started){ vidReady[curTheme] = false; showMode(); playCode(); } });
+    // safety: if the video hasn't started within 400 ms, never leave the screen empty
+    setTimeout(function(){ if (!started){ started = true; vidReady[curTheme] = false; showMode(); playCode(); } }, 400);
   }
 
   function play(o){
     o = o || {};
-    if (o.theme){ setTheme(o.theme); buildSprites(o.theme); buildDepth(o.theme); }
-    if (o.mult || o.name) setText(o.name ? o.name.toUpperCase().slice(0,16) : $("name").textContent, o.mult || $("num").textContent);
-    if (playing) return; playing = true; ring = null; burstDone = false;
-    document.body.classList.remove("play"); void document.body.offsetWidth; document.body.classList.add("play");
-    t0 = performance.now(); fpsT = t0; frames = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+    if (o.theme && o.theme !== curTheme){ curTheme = o.theme; setTheme(o.theme); buildSprites(o.theme); buildDepth(o.theme); preload(o.theme); loadVid(o.theme); showMode(); }
+    if (o.mult || o.name) setText(o.name ? o.name.toUpperCase().slice(0,16) : $("name").textContent, o.mult || curMult);
+    if (playing) return; playing = true;
+    if (useVideo()) playVideo(); else playCode();
   }
   $("btn").addEventListener("click", function(){ play(); });
   addEventListener("keydown", function(e){ if ((e.key||"").toLowerCase()==="t") play(); });
