@@ -215,7 +215,7 @@
   // ---------- video layer (preloaded into memory, never waits on network mid-stream) ----------
   var HD = q.get("q") === "hd";
   // each video only covers the area where its effect lives (box in 1080x1920 stage pixels) -> far less work per frame
-  var VIDEOS = { fire: { src: HD ? "/assets/fire-bg-hd.webm" : "/assets/fire-bg.webm", box: [0, 612, 1080, 1080] } };
+  var VIDEOS = { fire: { src: HD ? "/fire-bg-hd.webm" : "/fire-bg.webm", box: [0, 612, 1080, 1080] } };
   if (q.get("vsrc")) VIDEOS.fire.src = q.get("vsrc");
   var forceCode = q.get("mode") === "code";
   var bg = $("bg"), vidReady = {}, vidUrl = {}, curTheme = theme;
