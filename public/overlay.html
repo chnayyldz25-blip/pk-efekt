@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PK Efekt · Overlay</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;800&display=swap">
@@ -25,7 +26,10 @@
         display:flex;flex-direction:column;align-items:center;width:640px;will-change:transform,opacity}
   .m3d{position:relative;perspective:1400px;transform-style:preserve-3d;will-change:transform}
   #txt{display:block;will-change:transform}
-  #shn{position:absolute;left:0;top:0;pointer-events:none}
+  #shn{position:absolute;left:0;top:0;pointer-events:none;overflow:hidden;opacity:0;
+        -webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+  #band{position:absolute;top:-10%;left:0;height:120%;width:320px;will-change:transform;
+        background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.95) 50%,rgba(255,255,255,0) 100%)}
   /* float: slow 3D sway during the hold */
   .play .m3d{animation:sway 3.2s 900ms ease-in-out infinite}
   @keyframes sway{
@@ -64,7 +68,7 @@
   <div id="shake">
   <canvas id="fx" width="540" height="960"></canvas>
   <div class="wrap">
-    <div class="m3d" id="m3d"><canvas id="txt"></canvas><canvas id="shn"></canvas></div>
+    <div class="m3d" id="m3d"><canvas id="txt"></canvas><div id="shn"><div id="band"></div></div></div>
     <div class="name" id="name">YAYINCI</div>
   </div>
 </div></div>
@@ -100,7 +104,8 @@
     t.font = F + "px " + FONT; var mN = t.measureText(curMult), wN = mN.width, asc = mN.actualBoundingBoxAscent || F*.75;
     t.font = FX + "px " + FONT; var wX = t.measureText("X").width;
     var cw = Math.ceil(wX + gap + wN + pad*2 + 30), ch = Math.ceil(asc + pad*2 + 50), y = pad + asc;
-    tc.width = cw; tc.height = ch; $("shn").width = cw; $("shn").height = ch; maskC.width = cw; maskC.height = ch;
+    tc.width = cw; tc.height = ch; maskC.width = cw; maskC.height = ch;
+    var sh = $("shn"); sh.style.width = cw + "px"; sh.style.height = ch + "px";
     function glyphs(c, dx, dy){ c.font = FX + "px " + FONT; c.fillText("X", pad + dx, y - lift + dy); c.font = F + "px " + FONT; c.fillText(curMult, pad + wX + gap + dx, y + dy); }
     t = tc.getContext("2d"); t.clearRect(0,0,cw,ch); t.textBaseline = "alphabetic";
     // dark halo: keeps the number readable over a white-hot fireball or a bright camera
@@ -113,6 +118,7 @@
     t.save(); t.shadowColor = C.glow; t.shadowBlur = 42; t.fillStyle = g; glyphs(t,0,0); t.restore();        // glow
     t.fillStyle = g; glyphs(t,0,0);                                                                       // face
     var m = maskC.getContext("2d"); m.clearRect(0,0,cw,ch); m.fillStyle = "#fff"; glyphs(m,0,0);          // shine mask
+    var mu = "url(" + maskC.toDataURL("image/png") + ")"; sh.style.webkitMaskImage = mu; sh.style.maskImage = mu;
     // keep the old layout: visible glyph box sits where the HTML text used to be
     tc.style.margin = (-pad) + "px " + (-pad) + "px " + (-(ch - y - 44)) + "px";
     $("shn").style.left = "0px"; $("shn").style.top = (-pad) + "px"; $("shn").style.marginLeft = (-pad) + "px";
@@ -216,7 +222,8 @@
   // ---------- video layer (preloaded into memory, never waits on network mid-stream) ----------
   var HD = q.get("q") === "hd";
   // each video only covers the area where its effect lives (box in 1080x1920 stage pixels) -> far less work per frame
-  var VIDEOS = { fire: { src: HD ? "/fire-bg-hd.webm" : "/fire-bg.webm", box: [0, 612, 1080, 1080] } };
+  var BUILD = "9";   // bump on every update: forces browsers and Studio to fetch the new video instead of a cached copy
+  var VIDEOS = { fire: { src: (HD ? "/fire-bg-hd.webm" : "/fire-bg.webm") + "?v=" + BUILD, box: [0, 612, 1080, 1080] } };
   if (q.get("vsrc")) VIDEOS.fire.src = q.get("vsrc");
   var forceCode = q.get("mode") === "code";
   var bg = $("bg"), vidReady = {}, vidUrl = {}, curTheme = theme;
@@ -234,28 +241,25 @@
     bg.src = vidUrl[t]; bg.load();
   }
   function useVideo(){ return !forceCode && vidReady[curTheme] === true; }
-  function showMode(){ $("mode").textContent = useVideo() ? "VİDEO" : "KOD"; }
+  function showMode(){ $("mode").textContent = (useVideo() ? "VİDEO" : "KOD") + " · sürüm " + BUILD; }
   preload(theme); showMode();
 
-  var shRaf = 0;
+  var shAnims = [];
   function shine(){
-    var sc = $("shn"), c = sc.getContext("2d"), st = performance.now();
-    cancelAnimationFrame(shRaf);
-    function step(now){
-      var k = (now - st) / DUR;
-      c.clearRect(0,0,TXT.w,TXT.h);
-      if (k > .22 && k < .56){
-        var u = Math.min(1, (k - .24) / .28), e = 1 - Math.pow(1-u, 2), x = -0.35*TXT.w + e*1.7*TXT.w;
-        var a = k < .26 ? (k-.22)/.04 : k > .52 ? (.56-k)/.04 : 1;
-        c.globalCompositeOperation = "source-over"; c.globalAlpha = 1; c.drawImage(maskC, 0, 0);
-        c.globalCompositeOperation = "source-in";
-        var g = c.createLinearGradient(x - 160, 0, x + 160, TXT.h*.4);
-        g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(.5,"rgba(255,255,255,"+(.95*a)+")"); g.addColorStop(1,"rgba(255,255,255,0)");
-        c.fillStyle = g; c.fillRect(0,0,TXT.w,TXT.h); c.globalCompositeOperation = "source-over";
-      }
-      if (k < .58) shRaf = requestAnimationFrame(step); else c.clearRect(0,0,TXT.w,TXT.h);
-    }
-    shRaf = requestAnimationFrame(step);
+    shAnims.forEach(function(a){ try{ a.cancel(); }catch(e){} }); shAnims = [];
+    var sh = $("shn"), band = $("band"), w = TXT.w;
+    if (!sh.animate) return;                                   // very old engines: simply no shine, nothing breaks
+    var x0 = -0.35*w - 160, x1 = 1.35*w - 160;
+    shAnims.push(band.animate([
+      { transform: "translateX(" + x0 + "px) skewX(-25deg)", offset: 0 },
+      { transform: "translateX(" + x0 + "px) skewX(-25deg)", offset: .24 },
+      { transform: "translateX(" + x1 + "px) skewX(-25deg)", offset: .52, easing: "ease-out" },
+      { transform: "translateX(" + x1 + "px) skewX(-25deg)", offset: 1 }
+    ], { duration: DUR, fill: "forwards" }));
+    shAnims.push(sh.animate([
+      { opacity: 0, offset: 0 }, { opacity: 0, offset: .22 }, { opacity: 1, offset: .26 },
+      { opacity: 1, offset: .52 }, { opacity: 0, offset: .56 }, { opacity: 0, offset: 1 }
+    ], { duration: DUR, fill: "forwards" }));
   }
   // test-mode meter: real screen fps + real video frames presented
   var mRaf = 0;
